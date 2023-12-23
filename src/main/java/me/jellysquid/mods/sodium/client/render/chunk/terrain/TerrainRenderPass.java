@@ -1,65 +1,39 @@
 package me.jellysquid.mods.sodium.client.render.chunk.terrain;
 
-import java.nio.ByteBuffer;
-import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
-
-import org.lwjgl.system.MemoryStack;
-import org.lwjgl.system.MemoryUtil;
-import org.lwjgl.vulkan.VK13;
-
-import me.jellysquid.mods.sodium.client.render.shader.ShaderModule;
+import net.minecraft.client.render.RenderLayer;
 
 public class TerrainRenderPass {
-    private final VkDevice device;
-    private final VkPipeline pipeline;
-    private final VkPipelineLayout layout;
+    @Deprecated(forRemoval = true)
+    private final RenderLayer layer;
 
-    public TerrainRenderPass(VkDevice device) {
-        this.device = device;
+    private final boolean useReverseOrder;
+    private final boolean fragmentDiscard;
 
-        this.pipeline = createPipeline(device);
-        this.layout = createPipelineLayout(device, pipeline);
+    public TerrainRenderPass(RenderLayer layer, boolean useReverseOrder, boolean allowFragmentDiscard) {
+        this.layer = layer;
+
+        this.useReverseOrder = useReverseOrder;
+        this.fragmentDiscard = allowFragmentDiscard;
     }
 
-    private static VkPipeline createPipeline(VkDevice device) {
-        // Define the vertex shader stage
-        VkPipelineShaderStageCreateInfo vertexShaderStageInfo = new VkPipelineShaderStageCreateInfo();
-        vertexShaderStageInfo.sType = VK13.VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        vertexShaderStageInfo.stage = VK13.VK_SHADER_STAGE_VERTEX_BIT;
-        vertexShaderStageInfo.module = ShaderModule.load(device, "shaders/terrain.vert.spv");
-        vertexShaderStageInfo.pName = "main";
+    public boolean isReverseOrder() {
+        return this.useReverseOrder;
+    }
 
-        // Define the fragment shader stage
-        VkPipelineShaderStageCreateInfo fragmentShaderStageInfo = new VkPipelineShaderStageCreateInfo();
-        fragmentShaderStageInfo.sType = VK13.VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        fragmentShaderStageInfo.stage = VK13.VK_SHADER_STAGE_FRAGMENT_BIT;
-        fragmentShaderStageInfo.module = ShaderModule.load(device, "shaders/terrain.frag.spv");
-        fragmentShaderStageInfo.pName = "main";
+    @Deprecated
+    public void startDrawing() {
+        this.layer.startDrawing();
+    }
 
-        // Define the pipeline vertex input state
-        VkPipelineVertexInputStateCreateInfo vertexInputStateInfo = new VkPipelineVertexInputStateCreateInfo();
-        vertexInputStateInfo.sType = VK13.VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertexInputStateInfo.vertexBindingDescriptionCount = 1;
-        vertexInputStateInfo.pVertexBindingDescriptions = VertexInputBindingDescription.asByteBuffer().asIntBuffer().get();
-        vertexInputStateInfo.vertexAttributeDescriptionCount = VertexAttributeDescriptions.size();
-        vertexInputStateInfo.pVertexAttributeDescriptions = VertexAttributeDescriptions.stream()
-                .mapToInt(VertexAttributeDescription::toVkVertexInputAttributeDescription)
-                .toArray();
+    @Deprecated
+    public void endDrawing() {
+        this.layer.endDrawing();
+    }
 
-        // Define the pipeline input assembly state
-        VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateInfo = new VkPipelineInputAssemblyStateCreateInfo();
-        inputAssemblyStateInfo.sType = VK13.VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        inputAssemblyStateInfo.topology = VK13.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-
-        // Define the pipeline viewport state
-        VkPipelineViewportStateCreateInfo viewportStateInfo = new VkPipelineViewportStateCreateInfo();
-        viewportStateInfo.sType = VK13.VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-        viewportStateInfo.viewportCount = 1;
-        viewportStateInfo.pViewports = Viewport.asByteBuffer().asFloatBuffer().get();
-        viewportStateInfo.scissorCount = 1;
-        viewportStateInfo.pScissors = Scissor.asByteBuffer().asIntBuffer().get();
-
+    public boolean supportsFragmentDiscard() {
+        return this.fragmentDiscard;
+    }
+}
         // Define the pipeline rasterization state
         VkPipelineRasterizationStateCreateInfo rasterizationStateInfo = new VkPipelineRasterizationStateCreateInfo();
         rasterizationStateInfo.sType = VK13.VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
