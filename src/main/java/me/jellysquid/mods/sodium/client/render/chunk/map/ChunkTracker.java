@@ -27,7 +27,7 @@ public class ChunkTracker implements ClientChunkEventListener {
 
     @Override
     public void onChunkStatusAdded(int x, int z, int flags) {
-        var key = ChunkPos.toLong(x, z);
+        int key = ChunkPos.asLong(x, z);
 
         var prev = this.chunkStatus.get(key);
         var cur = prev | flags;
@@ -43,7 +43,7 @@ public class ChunkTracker implements ClientChunkEventListener {
 
     @Override
     public void onChunkStatusRemoved(int x, int z, int flags) {
-        var key = ChunkPos.toLong(x, z);
+        int key = ChunkPos.asLong(x, z);
 
         var prev = this.chunkStatus.get(key);
         int cur = prev & ~flags;
@@ -70,13 +70,13 @@ public class ChunkTracker implements ClientChunkEventListener {
     }
 
     private void updateMerged(int x, int z) {
-        int key = ChunkPos.toLong(x, z);
+        int key = ChunkPos.asLong(x, z);
 
         int flags = this.chunkStatus.get(key);
 
         for (int ox = -1; ox <= 1; ox++) {
             for (int oz = -1; oz <= 1; oz++) {
-                flags &= this.chunkStatus.get(ChunkPos.toLong(ox + x, oz + z));
+                flags &= this.chunkStatus.get(ChunkPos.asLong(ox + x, oz + z));
             }
         }
 
@@ -109,8 +109,8 @@ public class ChunkTracker implements ClientChunkEventListener {
         while (iterator.hasNext()) {
             var pos = iterator.next();
 
-            var x = pos >> ChunkPos.X_BITS;
-            var z = pos & ChunkPos.Z_MASK;
+            int x = (int) (pos >> 32); // Shift by 32 bits for X coordinate
+            int z = (int) pos; // Lower 32 bits for Z coordinate
 
             handler.apply(x, z);
         }
