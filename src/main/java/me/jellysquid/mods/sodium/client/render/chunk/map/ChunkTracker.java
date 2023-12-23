@@ -1,27 +1,28 @@
 package me.jellysquid.mods.sodium.client.render.chunk.map;
 
-import it.unimi.dsi.fastutil.longs.*;
+import it.unimi.dsi.fastutil.ints.*;
 import net.minecraft.util.math.ChunkPos;
 
 public class ChunkTracker implements ClientChunkEventListener {
 
-    private static final int MAX_CHUNK_STATUS_FLAGS = ChunkStatus.FLAG_ALL - 1;
+    private final Int2IntOpenHashMap chunkStatus = new Int2IntOpenHashMap();
+    private final IntOpenHashSet chunkReady = new IntOpenHashSet();
 
-    private final Long2IntOpenHashMap chunkStatus = new Long2IntOpenHashMap();
-    private final LongOpenHashSet chunkReady = new LongOpenHashSet();
-
-    private final LongSet unloadQueue = new LongOpenHashSet();
-    private final LongSet loadQueue = new LongOpenHashSet();
+    private final IntSet unloadQueue = new IntOpenHashSet();
+    private final IntSet loadQueue = new IntOpenHashSet();
 
     public ChunkTracker() {
+
     }
 
     @Override
     public void updateMapCenter(int chunkX, int chunkZ) {
+
     }
 
     @Override
     public void updateLoadDistance(int loadDistance) {
+
     }
 
     @Override
@@ -61,31 +62,25 @@ public class ChunkTracker implements ClientChunkEventListener {
     }
 
     private void updateNeighbors(int x, int z) {
-        var neighbors = new LongOpenHashSet();
-
         for (int ox = -1; ox <= 1; ox++) {
             for (int oz = -1; oz <= 1; oz++) {
-                if (ox != 0 || oz != 0) {
-                    neighbors.add(ChunkPos.toLong(x + ox, z + oz));
-                }
+                this.updateMerged(ox + x, oz + z);
             }
-        }
-
-        for (var neighbor : neighbors) {
-            this.updateMerged(ChunkPos.getPackedX(neighbor), ChunkPos.getPackedZ(neighbor));
         }
     }
 
     private void updateMerged(int x, int z) {
-        var key = ChunkPos.toLong(x, z);
+        int key = ChunkPos.toLong(x, z);
 
         int flags = this.chunkStatus.get(key);
 
-        for (var neighbor : this.getNeighbors(x, z)) {
-            flags &= this.chunkStatus.get(neighbor);
+        for (int ox = -1; ox <= 1; ox++) {
+            for (int oz = -1; oz <= 1; oz++) {
+                flags &= this.chunkStatus.get(ChunkPos.toLong(ox + x, oz + z));
+            }
         }
 
-        if (flags == MAX_CHUNK_STATUS_FLAGS) {
+        if (flags == ChunkStatus.FLAG_ALL) {
             if (this.chunkReady.add(key) && !this.unloadQueue.remove(key)) {
                 this.loadQueue.add(key);
             }
@@ -96,8 +91,8 @@ public class ChunkTracker implements ClientChunkEventListener {
         }
     }
 
-    public LongCollection getReadyChunks() {
-        return LongSets.unmodifiable(this.chunkReady);
+    public IntCollection getReadyChunks() {
+        return IntSets.unmodifiable(this.chunkReady);
     }
 
     public void forEachEvent(ChunkEventHandler loadEventHandler, ChunkEventHandler unloadEventHandler) {
@@ -108,27 +103,14 @@ public class ChunkTracker implements ClientChunkEventListener {
         this.loadQueue.clear();
     }
 
-    private void forEachChunk(LongCollection queue, ChunkEventHandler handler) {
+    public static void forEachChunk(IntCollection queue, ChunkEventHandler handler) {
         var iterator = queue.iterator();
 
         while (iterator.hasNext()) {
-            var pos = iterator.nextLong();
+            var pos = iterator.next();
 
-            var x = ChunkPos.getPackedX(pos);
-            var z = ChunkPos.getPackedZ(pos);
-
-            handler.apply(x, z);
-        }
-    }
-
-    public static void forEachChunk(LongCollection queue, ChunkEventHandler handler) {
-        var iterator = queue.iterator();
-
-        while (iterator.hasNext()) {
-            var pos = iterator.nextLong();
-
-            var x = ChunkPos.getPackedX(pos);
-            var z = ChunkPos.getPackedZ(pos);
+            var x = pos >> ChunkPos.X_BITS;
+            var z = pos & ChunkPos.Z_MASK;
 
             handler.apply(x, z);
         }
@@ -137,4 +119,5 @@ public class ChunkTracker implements ClientChunkEventListener {
     public interface ChunkEventHandler {
         void apply(int x, int z);
     }
-} 
+}
+
